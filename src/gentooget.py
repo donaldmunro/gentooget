@@ -65,7 +65,7 @@ Example: INTERNATIONAL_MIRRORS="http://ftp.heanet.ie/pub/gentoo/ ftp://mirrors.r
 INTERNAL_MIRRORS      : Contains a list of urls of internal network urls to distfiles directories
 Example: INTERNAL_MIRRORS="ftp://192.168.0.1/portage"
 Internal mirrors are currently assumed to be on a different interface eg eth1 as opposed to ppp0
-therefore no connection switching is applied before internal fetches.
+therefore no connection switching is applied before internal fetches. 
 
 Files
 =====

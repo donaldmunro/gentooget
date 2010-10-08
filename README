@@ -66,11 +66,14 @@ Additionally the FETCHCOMMAND and RESUMECOMMAND variables must be changed to use
 Example make.conf (only showing entries pertinent to gentooget)
 FETCHCOMMAND="/usr/bin/gentooget.py -V -D -d '${DISTDIR}' -f '${FILE}' -u '${URI}'"
 RESUMECOMMAND="/usr/bin/gentooget.py -V -D -c -d '${DISTDIR}' -f '${FILE}' -u '${URI}'"
+INTERNAL_MIRRORS="ftp://192.168.0.1/portage"
 GENTOO_MIRRORS="ftp://ftp.is.co.za//mirror/ftp.gentoo.org ftp://ftp.up.ac.za/mirrors/gentoo.org/gentoo http://ftp.heanet.ie/pub/gentoo/"
+
 
 Example make.conf using local/international switching
 FETCHCOMMAND="/usr/bin/gentooget.py -V -D -d '${DISTDIR}' -f '${FILE}' -u '${URI}' -l /etc/ppp/local -i /etc/ppp/shaped"
 RESUMECOMMAND="/usr/bin/gentooget.py -V -D -c -d '${DISTDIR}' -f '${FILE}' -u '${URI}' -l /etc/ppp/local -i /etc/ppp/shaped"
+INTERNAL_MIRRORS="ftp://192.168.0.1/portage"
 GENTOO_MIRRORS="ftp://ftp.is.co.za//mirror/ftp.gentoo.org ftp://ftp.up.ac.za/mirrors/gentoo.org/gentoo http://ftp.heanet.ie/pub/gentoo/"
 LOCAL_MIRRORS="ftp://ftp.is.co.za//mirror/ftp.gentoo.org ftp://ftp.up.ac.za/mirrors/gentoo.org/gentoo"
 INTERNATIONAL_MIRRORS="http://ftp.heanet.ie/pub/gentoo/ ftp://mirrors.rit.edu/gentoo/"
