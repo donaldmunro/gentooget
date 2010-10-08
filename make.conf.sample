@@ -1,0 +1,7 @@
+INTERNAL_MIRRORS="ftp://192.168.0.1/portage"
+GENTOO_MIRRORS="ftp://ftp.is.co.za//mirror/ftp.gentoo.org ftp://ftp.up.ac.za/mirrors/gentoo.org/gentoo http://ftp.heanet.ie/pub/gentoo/ ftp://mirrors.rit.edu
+LOCAL_MIRRORS="ftp://ftp.is.co.za//mirror/ftp.gentoo.org ftp://ftp.up.ac.za/mirrors/gentoo.org/gentoo"
+INTERNATIONAL_MIRRORS="http://ftp.heanet.ie/pub/gentoo/ ftp://mirrors.rit.edu/gentoo/"
+FETCHCOMMAND="/usr/bin/gentooget.py -V -D -d '${DISTDIR}' -f '${FILE}' -u '${URI}' -l /etc/ppp/local -i /etc/ppp/shaped"
+RESUMECOMMAND="/usr/bin/gentooget.py -V -D -c -d '${DISTDIR}' -f '${FILE}' -u '${URI}' -l /etc/ppp/local -i /etc/ppp/shaped"
+

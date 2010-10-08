@@ -1,0 +1,90 @@
+gentooget 0.2
+
+gentooget is a replacement download script for Gentoo Linux portage which acts as a facade for the
+aria2 downloader (http://aria2.sourceforge.net/) to enable simultaneous multi-part downloads from
+different Gentoo mirrors thus improving download speed.
+It also provides a facility to switch between 2 different (probably ADSL) Internet connections. This
+is desirable in dumbassed countries where you pay per Gb for ADSL and the costs for local only
+are a order of magnitude cheaper than international access. This allows use of a local connection
+where possible but if a download fails where the file is not available on a local mirror then
+gentooget switches to the international connection, downloads the file and then switches back to the
+local connection.
+
+gentooget [-h --help] [-v --version] [-V --verbose] [-D --debug] [-T --true] [-c --continue]  [-u --url=]
+          [-d directory=] [-f --file=] [-a --aria=] [-l --local=] [-i --international=]
+     -T --true           : Always return success even if a download fails.
+     -h --help           : Display help.
+     -c --continue       : Continue download (if not specified then existing file will be overwritten)
+                           Specify this in the RESUMECOMMAND variable in make.conf
+     -u --url=           : The url of the file to be downloaded. This should be passed as ${URI}
+                           in the FETCHCOMMAND and RESUMECOMMAND variables in the make.conf file.
+     -d directory=       : The destination directory to download the file to.
+     -f --file=          : The name of the destination file (full path is specified by -d and -f).
+     -a --aria=          : Path to the aria2 binary if it is not in the PATH.
+     -l --local=         : Path to a script or executable that switches to a local Internet
+                           connection.
+     -i --international= : Path to a script or executable that switches to a international
+                           Internet  connection.
+     -I --interface=     : The interface being switched by --local/--international (defaults to ppp0)
+                           If it is not ppp0 then it must be specified otherwise gentooget cannot
+                           check to see if the interface is up before continuing download.
+
+Enviroment Variables
+====================
+GENTOO_MIRRORS        : Contains a list of urls of mirrors for Gentoo portage dist locations
+                        separated by a space. This is a Portage standard variable and is used if
+                        local and international is not specified in the command line.
+Example: GENTOO_MIRRORS="http://ftp.heanet.ie/pub/gentoo/ ftp://ftp.is.co.za//mirror/ftp.gentoo.org"
+
+LOCAL_MIRRORS         : Contains a list of urls of local mirrors for Gentoo portage dist locations
+Example: LOCAL_MIRRORS="ftp://ftp.is.co.za//mirror/ftp.gentoo.org ftp://ftp.up.ac.za/mirrors/gentoo.org/gentoo"
+
+INTERNATIONAL_MIRRORS : Contains a list of urls of international mirrors for Gentoo portage dist locations
+Example: INTERNATIONAL_MIRRORS="http://ftp.heanet.ie/pub/gentoo/ ftp://mirrors.rit.edu/gentoo/"
+
+INTERNAL_MIRRORS      : Contains a list of urls of internal network urls to distfiles directories
+Example: INTERNAL_MIRRORS="ftp://192.168.0.1/portage"
+Internal mirrors are currently assumed to be on a different interface eg eth1 as opposed to ppp0
+therefore no connection switching is applied before internal fetches.
+
+Files
+=====
+~/GENTOO_MIRRORS
+May contain the GENTOO_MIRRORS, LOCAL_MIRRORS and INTERNATIONAL_MIRRORS variables (see Enviroment Variables)
+Example
+cat ~/GENTOO_MIRRORS
+GENTOO_MIRRORS="http://ftp.heanet.ie/pub/gentoo/ ftp://ftp.is.co.za//mirror/ftp.gentoo.org"
+LOCAL_MIRRORS="ftp://ftp.is.co.za//mirror/ftp.gentoo.org ftp://ftp.up.ac.za/mirrors/gentoo.org/gentoo"
+INTERNATIONAL_MIRRORS="http://ftp.heanet.ie/pub/gentoo/ ftp://mirrors.rit.edu/gentoo/"
+
+/etc/make.conf
+This is the Portage make.conf file. It should include the GENTOO_MIRRORS variable and optionally
+the LOCAL_MIRRORS and INTERNATIONAL_MIRRORS variables if local/international access is used and these
+are not specified as environment variables or in ~/GENTOO_MIRRORS.
+Additionally the FETCHCOMMAND and RESUMECOMMAND variables must be changed to use gentooget.
+
+Example make.conf (only showing entries pertinent to gentooget)
+FETCHCOMMAND="/usr/bin/gentooget.py -V -D -d '${DISTDIR}' -f '${FILE}' -u '${URI}'"
+RESUMECOMMAND="/usr/bin/gentooget.py -V -D -c -d '${DISTDIR}' -f '${FILE}' -u '${URI}'"
+GENTOO_MIRRORS="ftp://ftp.is.co.za//mirror/ftp.gentoo.org ftp://ftp.up.ac.za/mirrors/gentoo.org/gentoo http://ftp.heanet.ie/pub/gentoo/"
+
+Example make.conf using local/international switching
+FETCHCOMMAND="/usr/bin/gentooget.py -V -D -d '${DISTDIR}' -f '${FILE}' -u '${URI}' -l /etc/ppp/local -i /etc/ppp/shaped"
+RESUMECOMMAND="/usr/bin/gentooget.py -V -D -c -d '${DISTDIR}' -f '${FILE}' -u '${URI}' -l /etc/ppp/local -i /etc/ppp/shaped"
+GENTOO_MIRRORS="ftp://ftp.is.co.za//mirror/ftp.gentoo.org ftp://ftp.up.ac.za/mirrors/gentoo.org/gentoo http://ftp.heanet.ie/pub/gentoo/"
+LOCAL_MIRRORS="ftp://ftp.is.co.za//mirror/ftp.gentoo.org ftp://ftp.up.ac.za/mirrors/gentoo.org/gentoo"
+INTERNATIONAL_MIRRORS="http://ftp.heanet.ie/pub/gentoo/ ftp://mirrors.rit.edu/gentoo/"
+(assumes the scripts /etc/ppp/local.sh and  /etc/ppp/international.sh switch to local and international
+Internet connections)
+
+Notes
+Emerge will call gentooget as user portage so if using local/international switching with ADSL the script
+that does the switching will probably have to use sudo at least when stopping and starting PPPOE eg
+sudo pppoe-start /etc/ppp/pppoe.conf.local. In this case user portage will need to be a real user ie
+not have /bin/false for its shell in /etc/passwd and user portage will need to be added to group
+wheel (/etc/group) if you use group based sudo in /etc/sudoers. For example
+/etc/passwd:  portage:x:250:250:portage:/var/tmp/portage:/bin/bash
+/etc/group:   wheel:x:10:root,portage
+/etc/sudoers: %wheel ALL=(ALL) NOPASSWD: ALL
+
+
