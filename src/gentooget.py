@@ -52,6 +52,7 @@ gentooget [-h --help] [-v --version] [-V --verbose] [-D --debug] [-T --true] [-c
      -h --help           : Display help.
      -c --continue       : Continue download (if not specified then existing file will be overwritten)
                            Specify this in the RESUMECOMMAND variable in make.conf
+     -w --downman        : Attempt to use Downman if the package is not found anywhere else.
      -u --url=           : The url of the file to be downloaded. This should be passed as ${URI}
                            in the FETCHCOMMAND and RESUMECOMMAND variables in the make.conf file.
      -d directory=       : The destination directory to download the file to.
@@ -137,8 +138,8 @@ def main(argv=None):
       opts = []
       args = []
       try:
-         opts, args = getopt.getopt(argv[1:],  "hvVDTcu:d:f:a:l:i:I:",
-            ['help', 'version', 'verbose', 'debug', 'true', "continue","url=", "directory=", "file=",
+         opts, args = getopt.getopt(argv[1:],  "hvVDTwcu:d:f:a:l:i:I:",
+            ['help', 'version', 'verbose', 'debug', 'true', 'downman', "continue","url=", "directory=", "file=",
             "aria=", 'local=', 'international=', 'interface=' ])
       except getopt.error, e:
 #         except getopt.error as e: #Python 3
@@ -153,6 +154,7 @@ def main(argv=None):
       international = None
       interface = 'ppp0'
       alwaysSucceed = False
+      useDownman = False
       for opt, arg in opts:
          if opt in ("-h", "--help"):
             usage()
@@ -166,6 +168,8 @@ def main(argv=None):
             DEBUG = True
          elif opt in ("-T", "--true"):
             alwaysSucceed = True
+         elif opt in ("-w", "--downman"):
+	    useDownman = True
          elif opt in ("-c", "--continue"):
             options.append("-c")
          elif opt in ("-u", "--url"):
@@ -295,7 +299,7 @@ def main(argv=None):
                   sys.exit(1)
                if VERBOSE:
                   print("Switched to local (%s) " % (ip,))
-      if status != 0:
+      if status != 0 and useDownman:
          if VERBOSE:
             print("Downloading %s/%s failed. Attempting Portage downman" % (address, name))
          options = options[0:urlStart]
@@ -305,11 +309,9 @@ def main(argv=None):
          if DEBUG:
             print('downman: ' + str(options))
          status = subprocess.call(options)
-         if alwaysSucceed:
-            sys.exit(0)
-         sys.exit(status)
-      else:
+      if alwaysSucceed:
          sys.exit(0)
+      sys.exit(status)
    except getopt.error, err:
 #   except getopt.error as err:
       printErr(err)

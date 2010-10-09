@@ -16,6 +16,7 @@ gentooget [-h --help] [-v --version] [-V --verbose] [-D --debug] [-T --true] [-c
      -h --help           : Display help.
      -c --continue       : Continue download (if not specified then existing file will be overwritten)
                            Specify this in the RESUMECOMMAND variable in make.conf
+     -w --downman        : Attempt to use Downman if the package is not found anywhere else.
      -u --url=           : The url of the file to be downloaded. This should be passed as ${URI}
                            in the FETCHCOMMAND and RESUMECOMMAND variables in the make.conf file.
      -d directory=       : The destination directory to download the file to.
