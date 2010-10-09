@@ -125,10 +125,13 @@ wheel (/etc/group) if you use group based sudo in /etc/sudoers. For example
 /etc/sudoers: %wheel ALL=(ALL) NOPASSWD: ALL
 """)
 
+def colorstr(message, color):
+   return '\033[' + color + 'm' + message + '\033[0m'
+
 # Python 3 compatibility helper
 def printErr(message):
-   print  >>sys.stderr, message
-#   print(message, file=sys.stderr)
+   print  >>sys.stderr, red() + message
+#   print(red() + message, file=sys.stderr)
 
 def main(argv=None):
    global  VERSION, VERBOSE, DEBUG, GENTOO_MIRRORS, INTERNATIONAL_MIRRORS, LOCAL_MIRRORS, INTERNAL_MIRRORS
@@ -270,44 +273,48 @@ def main(argv=None):
       if not INTERNAL_MIRRORS is None and len(INTERNAL_MIRRORS) > 0:
          appendMirrors(url, address, name, options, INTERNAL_MIRRORS)
          if DEBUG:
-            print('internal: ' + str(options))
+            print(green() + 'Using internal mirror:')
+            print(concatOpts(options))
          status = subprocess.call(options)
       if status != 0: # Next try local or default if not using local/international switching
          appendMirrors(url, address, name, options, mirrors)
          if DEBUG:
-            print('local: ' + str(options))
+            print(green() + 'Using local mirror:')
+            print(green() + concatOpts(options))
          status = subprocess.call(options)
 
       if status != 0 and not local is None and not international is None:
          # If using using local/international switching try international next
          if VERBOSE:
-            print("Downloading %s/%s failed on local connection. Attempting international" % (address, name))
+            print(yellow() + "Downloading %s/%s failed on local connection. Attempting international" % (address, name))
          options = options[0:urlStart]
          appendMirrors(url, address, name, options, INTERNATIONAL_MIRRORS)
-         if DEBUG:
-            print('international: ' + str(options))
          ip = switchConnection(international, interface) # Switch to international
          if not ip is None:
             try:
                if VERBOSE:
-                  print("Switched to international (%s) " % (ip,))
+                  print(green() + "Switched to international (%s) " % (ip,))
+               if DEBUG:
+                  print(green() + 'Using international mirror:')
+                  print(green() + concatOpts(options))
                status =  subprocess.call(options)
             finally:
                ip = switchConnection(local, interface) # Switch back to local
                if ip is None:
-                  print("Failed to switch back to local")
+                  print(red() + "Failed to switch back to local")
                   sys.exit(1)
                if VERBOSE:
-                  print("Switched to local (%s) " % (ip,))
+                  print(green() + "Switched to local (%s) " % (ip,))
       if status != 0 and useDownman:
          if VERBOSE:
-            print("Downloading %s/%s failed. Attempting Portage downman" % (address, name))
+            print(yellow() + "Downloading %s/%s failed. Attempting Portage downman" % (address, name))
          options = options[0:urlStart]
 #         options.append("-s")
 #         options.append('1').
          options.append('http://www.voidspace.org.uk/cgi-bin/voidspace/downman.py?file=' + name)
          if DEBUG:
-            print('downman: ' + str(options))
+            print(green() + 'Using downman:')
+            print(green() + concatOpts(options))
          status = subprocess.call(options)
       if alwaysSucceed:
          sys.exit(0)
@@ -440,13 +447,27 @@ def switchConnection(script, interface):
          return None
    ip = interfaceIp(interface)
    if ip is None:
-      print("Waiting for interface " + interface)
+      print(yellow() + "Waiting for interface " + interface)
    while ip is None:
       time.sleep(3)
       ip = interfaceIp(interface)      
-   print("script %s interface %s ip %s connected" % (script, interface, ip))
+   print(green() + "script %s interface %s ip %s connected" % (script, interface, ip))
    return ip
 
+def concatOpts(opts):
+   ret = ''
+   for opt in opts:
+      ret += opt + ' '
+   return ret
+
+def red(message = ' * '):
+   return colorstr(message, '91')
+
+def green(message = ' * '):
+   return colorstr(message, '92')
+
+def yellow(message = ' * '):
+   return colorstr(message, '93')
 
 if __name__ == "__main__":
    sys.exit(main())
