@@ -15,7 +15,12 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/gpl-3.0.html>.
+#
+# Patches
+#  AlecM (github.com/AlecM) - Made downman optional
+#  AlecM (github.com/AlecM) - Added color output to distinquish aria output from script output
 
+import os
 import os.path
 import sys
 import errno
@@ -158,6 +163,8 @@ def main(argv=None):
       interface = 'ppp0'
       alwaysSucceed = False
       useDownman = False
+      mustSwitch = False
+      dir = '/usr/portage/distfiles'
       for opt, arg in opts:
          if opt in ("-h", "--help"):
             usage()
@@ -172,14 +179,15 @@ def main(argv=None):
          elif opt in ("-T", "--true"):
             alwaysSucceed = True
          elif opt in ("-w", "--downman"):
-	    useDownman = True
+	         useDownman = True
          elif opt in ("-c", "--continue"):
             options.append("-c")
          elif opt in ("-u", "--url"):
             url = arg
          elif opt in ("-d", "--directory"):
             options.append("-d")
-            options.append(arg)
+            dir = arg
+            options.append(dir)
          elif opt in ("-f", "--file"):
             # @type arg str
             p = arg.rfind('?file=')
@@ -208,18 +216,20 @@ def main(argv=None):
                sys.exit(1)
          elif opt in ("-I", "--interface"):
                interface = arg
-
-      if not '-c' in options:
-         options.append('--allow-overwrite=true')
+      
       if not '-d' in options:
          options.append("-d")
-         options.append('/usr/portage/distfiles')      
+         options.append(dir)
       if url is None:
          printErr('ERROR: No url specified')
          sys.exit(1)
       if not '-o' in options:
          printErr('ERROR: No output filename specified')
          sys.exit(1)
+      if not '-c' in options:
+         options.append('--allow-overwrite=true')
+      fullPath = os.path.join(dir, name)
+      mustSwitch = not local is None and not international is None
       if local is None and not international is None:
          printErr("If a international script (%s) is specified then a local script must also be specified"
          % (international,))
@@ -228,9 +238,9 @@ def main(argv=None):
          printErr("If a local script (%s) is specified then an international script must also be specified"
          % (local,))
          sys.exit(1)
-      if not local is None and not international is None:
+      if mustSwitch:
          # If using using local/international switching start in local mode
-         ip = switchConnection(local, interface)
+         ip = switchConnection(local, interface)         
          if ip is None:
             printErr('Error: Could not switch to local connection using %s (checking interface %s)' %
             (local, interface))
@@ -238,11 +248,10 @@ def main(argv=None):
          else:
             if VERBOSE:
                print("Switched to local connection using IP " + ip)
-      # @type mirrors list
-      
+      # @type mirrors list      
       GENTOO_MIRRORS = readMirrors()
       INTERNAL_MIRRORS = readMirrors('INTERNAL_MIRRORS')
-      if not local is None and not international is None:
+      if mustSwitch:
          LOCAL_MIRRORS = readMirrors('LOCAL_MIRRORS')
          if LOCAL_MIRRORS is None or len(LOCAL_MIRRORS) == 0:
             printErr("ERROR: No local mirrors found (checked env variable LOCAL_MIRRORS, file " \
@@ -275,15 +284,14 @@ def main(argv=None):
          if DEBUG:
             print(green() + 'Using internal mirror:')
             print(concatOpts(options))
-         status = subprocess.call(options)
+         status = download(options, fullPath)
       if status != 0: # Next try local or default if not using local/international switching
          appendMirrors(url, address, name, options, mirrors)
          if DEBUG:
             print(green() + 'Using local mirror:')
             print(green() + concatOpts(options))
-         status = subprocess.call(options)
-
-      if status != 0 and not local is None and not international is None:
+         status = download(options, fullPath)
+      if status != 0 and mustSwitch:
          # If using using local/international switching try international next
          if VERBOSE:
             print(yellow() + "Downloading %s/%s failed on local connection. Attempting international" % (address, name))
@@ -297,7 +305,7 @@ def main(argv=None):
                if DEBUG:
                   print(green() + 'Using international mirror:')
                   print(green() + concatOpts(options))
-               status =  subprocess.call(options)
+               status = download(options, fullPath)
             finally:
                ip = switchConnection(local, interface) # Switch back to local
                if ip is None:
@@ -315,7 +323,7 @@ def main(argv=None):
          if DEBUG:
             print(green() + 'Using downman:')
             print(green() + concatOpts(options))
-         status = subprocess.call(options)
+         status = download(options, fullPath)
       if alwaysSucceed:
          sys.exit(0)
       sys.exit(status)
@@ -323,6 +331,16 @@ def main(argv=None):
 #   except getopt.error as err:
       printErr(err)
       sys.exit(1)
+
+def download(options, fullPath):
+   if os.path.exists(fullPath + '.aria2'):
+      os.remove(fullPath + '.aria2') # If not deleted aria retries using the last failed url regardless of the specified urls
+   status = subprocess.call(options)
+   if not os.path.exists(fullPath):
+      return 1
+   if os.path.getsize(fullPath) == 0:
+      return 2
+   return status
 
 def readMirrors(var = 'GENTOO_MIRRORS'):
    mirrors = []
