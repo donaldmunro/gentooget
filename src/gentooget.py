@@ -124,10 +124,12 @@ Emerge will call gentooget as user portage so if using local/international switc
 that does the switching will probably have to use sudo at least when stopping and starting PPPOE eg
 sudo pppoe-start /etc/ppp/pppoe.conf.local. In this case user portage will need to be a real user ie
 not have /bin/false for its shell in /etc/passwd and user portage will need to be added to group
-wheel (/etc/group) if you use group based sudo in /etc/sudoers. For example
+wheel (/etc/group). On a single user desktop system you can use group based sudo in /etc/sudoers. For example
 /etc/passwd:  portage:x:250:250:portage:/var/tmp/portage:/bin/bash
 /etc/group:   wheel:x:10:root,portage
 /etc/sudoers: %wheel ALL=(ALL) NOPASSWD: ALL
+A more secure solution would be to allow user portage per command access, for example:
+/etc/sudoers: portage  localhost = /usr/sbin/pppoe-start /usr/sbin/pppoe-stop (see <http://www.gentoo.org/doc/en/sudo-guide.xml>)
 """)
 
 def colorstr(message, color):
