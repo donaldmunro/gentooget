@@ -181,7 +181,7 @@ def main(argv=None):
          elif opt in ("-T", "--true"):
             alwaysSucceed = True
          elif opt in ("-w", "--downman"):
-	         useDownman = True
+            useDownman = True
          elif opt in ("-c", "--continue"):
             options.append("-c")
          elif opt in ("-u", "--url"):
@@ -240,16 +240,8 @@ def main(argv=None):
          printErr("If a local script (%s) is specified then an international script must also be specified"
          % (local,))
          sys.exit(1)
-      if mustSwitch:
-         # If using using local/international switching start in local mode
-         ip = switchConnection(local, interface)         
-         if ip is None:
-            printErr('Error: Could not switch to local connection using %s (checking interface %s)' %
-            (local, interface))
-            sys.exit(1)
-         else:
-            if VERBOSE:
-               print("Switched to local connection using IP " + ip)
+      if DEBUG:
+         print(concatOpts(argv))
       # @type mirrors list      
       GENTOO_MIRRORS = readMirrors()
       INTERNAL_MIRRORS = readMirrors('INTERNAL_MIRRORS')
@@ -282,17 +274,34 @@ def main(argv=None):
       status = 1
       # Try internal first if there are any
       if not INTERNAL_MIRRORS is None and len(INTERNAL_MIRRORS) > 0:
-         appendMirrors(url, address, name, options, INTERNAL_MIRRORS)
+         for mirror in INTERNAL_MIRRORS:
+            newUrl = mirror + '/distfiles/' + name
+            options.append(newUrl)
          if DEBUG:
             print(green() + 'Using internal mirror:')
             print(concatOpts(options))
          status = download(options, fullPath)
       if status != 0: # Next try local or default if not using local/international switching
-         appendMirrors(url, address, name, options, mirrors)
+         if mustSwitch:
+         # If using using local/international switching start in local
+            ip = switchConnection(local, interface)
+            if ip is None:
+               printErr('Error: Could not switch to local connection using %s (checking interface %s)' %
+               (local, interface))
+               sys.exit(1)
+            else:
+               if VERBOSE:
+                  print("Switched to local connection using IP " + ip)
+         isMirror = appendMirrors(url, address, name, options, mirrors)
          if DEBUG:
-            print(green() + 'Using local mirror:')
             print(green() + concatOpts(options))
-         status = download(options, fullPath)
+         if mustSwitch:
+            if isMirror: #External url is probably not local
+               if DEBUG:
+                  print(green() + 'Using local mirror')
+               status = download(options, fullPath)
+         else:
+            status = download(options, fullPath)
       if status != 0 and mustSwitch:
          # If using using local/international switching try international next
          if VERBOSE:
@@ -414,6 +423,7 @@ def appendMirrors(url, address, name, options, mirrors):
       for mirror in mirrors:
          newUrl = mirror + '/distfiles/' + name
          options.append(newUrl)
+   return isMirror
 
 INTERFACE_RE = re.compile(r".*inet addr:(\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b) .*")
 
@@ -421,7 +431,7 @@ def interfaceIp(interface):
    global INTERFACE_RE
    process = None
    try:
-      process = subprocess.Popen(['ifconfig', interface], stdout=subprocess.PIPE,
+      process = subprocess.Popen(['/sbin/ifconfig', interface], stdout=subprocess.PIPE,
       stderr=subprocess.STDOUT, bufsize=4096)
    except:
       printErr("Exception executing ifconfig " + interface)
